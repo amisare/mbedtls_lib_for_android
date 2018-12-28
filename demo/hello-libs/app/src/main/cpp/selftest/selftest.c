@@ -20,51 +20,44 @@
  */
 
 #if !defined(MBEDTLS_CONFIG_FILE)
-#include <config.h>
+#include "config.h"
 #else
 #include MBEDTLS_CONFIG_FILE
 #endif
 
-#include <entropy.h>
-#include <entropy_poll.h>
-#include <hmac_drbg.h>
-#include <ctr_drbg.h>
-#include <dhm.h>
-#include <gcm.h>
-#include <ccm.h>
-#include <cmac.h>
-#include <md2.h>
-#include <md4.h>
-#include <md5.h>
-#include <ripemd160.h>
-#include <sha1.h>
-#include <sha256.h>
-#include <sha512.h>
-#include <arc4.h>
-#include <des.h>
-#include <aes.h>
-#include <camellia.h>
-#include <aria.h>
-#include <chacha20.h>
-#include <poly1305.h>
-#include <chachapoly.h>
-#include <base64.h>
-#include <bignum.h>
-#include <rsa.h>
-#include <x509.h>
-#include <xtea.h>
-#include <pkcs5.h>
-#include <ecp.h>
-#include <ecjpake.h>
-#include <timing.h>
-#include <nist_kw.h>
+#include "entropy.h"
+#include "entropy_poll.h"
+#include "hmac_drbg.h"
+#include "ctr_drbg.h"
+#include "dhm.h"
+#include "gcm.h"
+#include "ccm.h"
+#include "cmac.h"
+#include "md2.h"
+#include "md4.h"
+#include "md5.h"
+#include "ripemd160.h"
+#include "sha1.h"
+#include "sha256.h"
+#include "sha512.h"
+#include "arc4.h"
+#include "des.h"
+#include "aes.h"
+#include "camellia.h"
+#include "base64.h"
+#include "bignum.h"
+#include "rsa.h"
+#include "x509.h"
+#include "xtea.h"
+#include "pkcs5.h"
+#include "ecp.h"
+#include "ecjpake.h"
+#include "timing.h"
 
 #include <string.h>
 
-#include <android/log.h>
-
 #if defined(MBEDTLS_PLATFORM_C)
-#include <platform.h>
+#include "platform.h"
 #else
 #include <stdio.h>
 #include <stdlib.h>
@@ -75,54 +68,44 @@
 #define MBEDTLS_EXIT_FAILURE EXIT_FAILURE
 #endif
 
+#if defined(MBEDTLS_MEMORY_BUFFER_ALLOC_C)
+#include "memory_buffer_alloc.h"
+#endif
+
+#include <android/log.h>
+
 #undef mbedtls_printf
 #define mbedtls_printf(...) \
   ((void)__android_log_print(ANDROID_LOG_INFO, "hello-libs:: selftest", __VA_ARGS__))
-
-#if defined(MBEDTLS_MEMORY_BUFFER_ALLOC_C)
-#include <memory_buffer_alloc.h>
-#endif
-
-#if defined(MBEDTLS_CHECK_PARAMS)
-#include <platform_util.h>
-void mbedtls_param_failed( const char *failure_condition,
-                           const char *file,
-                           int line )
-{
-    mbedtls_printf( "%s:%i: Input param failed - %s\n",
-                    file, line, failure_condition );
-    mbedtls_exit( MBEDTLS_EXIT_FAILURE );
-}
-#endif
 
 static int test_snprintf( size_t n, const char ref_buf[10], int ref_ret )
 {
     int ret;
     char buf[10] = "xxxxxxxxx";
     const char ref[10] = "xxxxxxxxx";
-
+    
     ret = mbedtls_snprintf( buf, n, "%s", "123" );
     if( ret < 0 || (size_t) ret >= n )
         ret = -1;
-
+    
     if( strncmp( ref_buf, buf, sizeof( buf ) ) != 0 ||
-        ref_ret != ret ||
-        memcmp( buf + n, ref + n, sizeof( buf ) - n ) != 0 )
+       ref_ret != ret ||
+       memcmp( buf + n, ref + n, sizeof( buf ) - n ) != 0 )
     {
         return( 1 );
     }
-
+    
     return( 0 );
 }
 
 static int run_test_snprintf( void )
 {
     return( test_snprintf( 0, "xxxxxxxxx",  -1 ) != 0 ||
-            test_snprintf( 1, "",           -1 ) != 0 ||
-            test_snprintf( 2, "1",          -1 ) != 0 ||
-            test_snprintf( 3, "12",         -1 ) != 0 ||
-            test_snprintf( 4, "123",         3 ) != 0 ||
-            test_snprintf( 5, "123",         3 ) != 0 );
+           test_snprintf( 1, "",           -1 ) != 0 ||
+           test_snprintf( 2, "1",          -1 ) != 0 ||
+           test_snprintf( 3, "12",         -1 ) != 0 ||
+           test_snprintf( 4, "123",         3 ) != 0 ||
+           test_snprintf( 5, "123",         3 ) != 0 );
 }
 
 /*
@@ -137,24 +120,24 @@ static void create_entropy_seed_file( void )
     int result;
     size_t output_len = 0;
     unsigned char seed_value[MBEDTLS_ENTROPY_BLOCK_SIZE];
-
+    
     /* Attempt to read the entropy seed file. If this fails - attempt to write
      * to the file to ensure one is present. */
     result = mbedtls_platform_std_nv_seed_read( seed_value,
-                                                    MBEDTLS_ENTROPY_BLOCK_SIZE );
+                                               MBEDTLS_ENTROPY_BLOCK_SIZE );
     if( 0 == result )
         return;
-
+    
     result = mbedtls_platform_entropy_poll( NULL,
-                                            seed_value,
-                                            MBEDTLS_ENTROPY_BLOCK_SIZE,
-                                            &output_len );
+                                           seed_value,
+                                           MBEDTLS_ENTROPY_BLOCK_SIZE,
+                                           &output_len );
     if( 0 != result )
         return;
-
+    
     if( MBEDTLS_ENTROPY_BLOCK_SIZE != output_len )
         return;
-
+    
     mbedtls_platform_std_nv_seed_write( seed_value, MBEDTLS_ENTROPY_BLOCK_SIZE );
 }
 #endif
@@ -227,20 +210,8 @@ const selftest_t selftests[] =
 #if defined(MBEDTLS_CCM_C) && defined(MBEDTLS_AES_C)
     {"ccm", mbedtls_ccm_self_test},
 #endif
-#if defined(MBEDTLS_NIST_KW_C) && defined(MBEDTLS_AES_C)
-    {"nist_kw", mbedtls_nist_kw_self_test},
-#endif
 #if defined(MBEDTLS_CMAC_C)
     {"cmac", mbedtls_cmac_self_test},
-#endif
-#if defined(MBEDTLS_CHACHA20_C)
-    {"chacha20", mbedtls_chacha20_self_test},
-#endif
-#if defined(MBEDTLS_POLY1305_C)
-    {"poly1305", mbedtls_poly1305_self_test},
-#endif
-#if defined(MBEDTLS_CHACHAPOLY_C)
-    {"chacha20-poly1305", mbedtls_chachapoly_self_test},
 #endif
 #if defined(MBEDTLS_BASE64_C)
     {"base64", mbedtls_base64_self_test},
@@ -259,9 +230,6 @@ const selftest_t selftests[] =
 #endif
 #if defined(MBEDTLS_CAMELLIA_C)
     {"camellia", mbedtls_camellia_self_test},
-#endif
-#if defined(MBEDTLS_ARIA_C)
-    {"aria", mbedtls_aria_self_test},
 #endif
 #if defined(MBEDTLS_CTR_DRBG_C)
     {"ctr_drbg", mbedtls_ctr_drbg_self_test},
@@ -284,11 +252,11 @@ const selftest_t selftests[] =
 #if defined(MBEDTLS_PKCS5_C)
     {"pkcs5", mbedtls_pkcs5_self_test},
 #endif
-/* Slower test after the faster ones */
+    /* Slower test after the faster ones */
 #if defined(MBEDTLS_TIMING_C)
     {"timing", mbedtls_timing_self_test},
 #endif
-/* Heap test comes last */
+    /* Heap test comes last */
 #if defined(MBEDTLS_MEMORY_BUFFER_ALLOC_C)
     {"memory_buffer_alloc", mbedtls_memory_buffer_alloc_free_and_self_test},
 #endif
@@ -309,7 +277,7 @@ int selftest_main( int argc, char *argv[] )
     unsigned char buf[1000000];
 #endif
     void *pointer;
-
+    
     /*
      * The C standard doesn't guarantee that all-bits-0 is the representation
      * of a NULL pointer. We do however use that in our code for initializing
@@ -321,7 +289,7 @@ int selftest_main( int argc, char *argv[] )
         mbedtls_printf( "all-bits-zero is not a NULL pointer\n" );
         mbedtls_exit( MBEDTLS_EXIT_FAILURE );
     }
-
+    
     /*
      * Make sure we have a snprintf that correctly zero-terminates
      */
@@ -330,32 +298,32 @@ int selftest_main( int argc, char *argv[] )
         mbedtls_printf( "the snprintf implementation is broken\n" );
         mbedtls_exit( MBEDTLS_EXIT_FAILURE );
     }
-
+    
     for( argp = argv + ( argc >= 1 ? 1 : argc ); *argp != NULL; ++argp )
     {
         if( strcmp( *argp, "--quiet" ) == 0 ||
-            strcmp( *argp, "-q" ) == 0 )
+           strcmp( *argp, "-q" ) == 0 )
         {
             v = 0;
         }
         else if( strcmp( *argp, "--exclude" ) == 0 ||
-                 strcmp( *argp, "-x" ) == 0 )
+                strcmp( *argp, "-x" ) == 0 )
         {
             exclude_mode = 1;
         }
         else
             break;
     }
-
+    
     if( v != 0 )
         mbedtls_printf( "\n" );
-
+    
 #if defined(MBEDTLS_SELF_TEST)
-
+    
 #if defined(MBEDTLS_MEMORY_BUFFER_ALLOC_C)
     mbedtls_memory_buffer_alloc_init( buf, sizeof(buf) );
 #endif
-
+    
     if( *argp != NULL && exclude_mode == 0 )
     {
         /* Run the specified tests */
@@ -411,16 +379,16 @@ int selftest_main( int argc, char *argv[] )
             suites_tested++;
         }
     }
-
+    
 #else
     (void) exclude_mode;
     mbedtls_printf( " MBEDTLS_SELF_TEST not defined.\n" );
 #endif
-
+    
     if( v != 0 )
     {
         mbedtls_printf( "  Executed %d test suites\n\n", suites_tested );
-
+        
         if( suites_failed > 0)
         {
             mbedtls_printf( "  [ %d tests FAIL ]\n\n", suites_failed );
@@ -434,10 +402,10 @@ int selftest_main( int argc, char *argv[] )
         fflush( stdout ); getchar();
 #endif
     }
-
+    
     if( suites_failed > 0)
         mbedtls_exit( MBEDTLS_EXIT_FAILURE );
-
+    
     /* return() is here to prevent compiler warnings */
     return( MBEDTLS_EXIT_SUCCESS );
 }
