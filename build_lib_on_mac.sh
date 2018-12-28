@@ -1,7 +1,7 @@
 #!/bin/sh
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-VERSION_TAG="2.16.0"
+VERSION_TAG="2.7.9"
 
 create_directory() {
     rm -rf build/*
@@ -13,7 +13,9 @@ create_directory() {
 
 fetch_mbedtls() {
     git clone https://github.com/ARMmbed/mbedtls.git mbedtls
-    git -C mbedtls checkout ${VERSION_TAG}
+    git -C mbedtls checkout mbedtls-${VERSION_TAG}
+    status=$(git -C mbedtls status)
+    echo "\nmbedtls git status:\n${status}\n"
 }
 
 run_cmake() {
@@ -53,4 +55,4 @@ main_func() {
 }
 
 ANDROID_NDK=$1
-main_func ${ANDROID_NDK}
+main_func ${ANDROID_NDK} 
